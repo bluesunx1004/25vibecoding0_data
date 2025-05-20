@@ -35,7 +35,7 @@ with st.form(key="location_form"):
                 "note": note
             })
             st.success(f"'{city}'에 대한 메모가 저장되었습니다!")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("도시를 찾을 수 없습니다. 다시 입력해주세요.")
 
@@ -65,7 +65,7 @@ if st.session_state["locations"]:
             st.session_state["edit_index"] = i
         if cols[2].button("삭제", key=f"delete_{i}"):
             st.session_state["locations"].pop(i)
-            st.experimental_rerun()
+            st.rerun()
 
 # 수정 폼
 if st.session_state["edit_index"] is not None:
