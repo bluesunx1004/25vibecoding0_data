@@ -2,37 +2,40 @@ import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import pandas as pd
 
-# Streamlit 페이지 설정
-st.set_page_config(page_title="삼성전자 주가 추세", layout="wide")
-st.title("📈 삼성전자 (005930.KS) 최근 1년간 주가 추세")
+# 페이지 설정
+st.set_page_config(page_title="삼성전자 월별 주가 추세", layout="wide")
+st.title("📈 삼성전자 (005930.KS) 최근 1년간 **월별 종가** 추세")
 
 # 날짜 범위 설정
 end = datetime.today()
 start = end - timedelta(days=365)
 
-# 삼성전자 주식 데이터 불러오기
+# 삼성전자 주식 데이터 가져오기
 ticker = "005930.KS"
-data = yf.download(ticker, start=start, end=end)
+df = yf.download(ticker, start=start, end=end)
 
-# 데이터 유효성 확인
-if data.empty:
-    st.error("❌ 데이터를 불러오지 못했습니다. 인터넷 연결 또는 Yahoo Finance 문제일 수 있습니다.")
+if df.empty:
+    st.error("❌ 데이터를 불러올 수 없습니다.")
 else:
-    # 선 그래프 생성
+    # 월별 종가만 추출
+    df_monthly = df['Close'].resample('M').last().reset_index()
+
+    # Plotly 시각화
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=data.index,
-        y=data['Close'],
+        x=df_monthly['Date'],
+        y=df_monthly['Close'],
         mode='lines+markers',
-        name="삼성전자 종가",
-        line=dict(color='blue', width=2),
-        marker=dict(size=3)
+        name='월별 종가',
+        line=dict(color='green', width=2),
+        marker=dict(size=6)
     ))
 
     fig.update_layout(
-        title="삼성전자 주가 추세 (최근 1년)",
-        xaxis_title="날짜",
+        title="📅 최근 1년간 삼성전자 월별 종가 추세",
+        xaxis_title="월",
         yaxis_title="종가 (KRW)",
         hovermode="x unified",
         template="plotly_white",
@@ -40,3 +43,8 @@ else:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    # 데이터도 함께 표로 보여주기
+    st.subheader("📋 월별 종가 데이터")
+    df_monthly['Date'] = df_monthly['Date'].dt.strftime('%Y-%m')
+    st.dataframe(df_monthly.rename(columns={'Date': '월', 'Close': '종가(KRW)'}), use_container_width=True)
