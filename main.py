@@ -1,53 +1,56 @@
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
-from geopy.geocoders import Nominatim
+import pandas as pd
+import plotly.graph_objects as go
+import chardet
 
-# 페이지 설정
-st.set_page_config(page_title="나만의 여행지도", layout="centered")
-st.title("🌍 나만의 여행지도 만들기")
-st.write("방문했던 도시를 입력하면 지도에 마커로 표시됩니다!")
+# 📌 인코딩 자동 감지 함수
+def detect_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        result = chardet.detect(f.read(10000))
+    return result['encoding']
 
-# 세션 상태 초기화 (최초 실행 시)
-if "locations" not in st.session_state:
-    st.session_state.locations = []
+# 📦 데이터 불러오기 (Streamlit 캐시 사용)
+@st.cache_data
+def load_data():
+    male_encoding = 'cp949'  # 확인된 인코딩
+    total_encoding = detect_encoding('total.csv')  # 자동 감지
+    male_female = pd.read_csv('malefemale.csv', encoding=male_encoding)
+    total = pd.read_csv('total.csv', encoding=total_encoding)
+    return male_female, total
 
-# 입력 폼
-with st.form("location_form"):
-    city = st.text_input("도시 이름 (예: Seoul, Tokyo, Paris 등)", "")
-    note = st.text_input("메모 (선택 사항)", "")
-    submitted = st.form_submit_button("지도에 추가하기")
+male_female_df, total_df = load_data()
 
-# 도시가 입력되었을 경우 위치 좌표 찾기
-if submitted and city:
+# 숫자 파싱 유틸리티
+def parse_number(val):
     try:
-        geolocator = Nominatim(user_agent="travel_map_app")
-        location = geolocator.geocode(city)
+        return int(str(val).replace(',', ''))
+    except:
+        return 0
 
-        if location:
-            st.session_state.locations.append({
-                "city": city,
-                "note": note,
-                "lat": location.latitude,
-                "lon": location.longitude
-            })
-            st.success(f"✅ '{city}' 위치를 지도에 표시했습니다!")
-        else:
-            st.error("❌ 도시를 찾을 수 없습니다. 다른 이름으로 다시 시도해보세요.")
-    except Exception as e:
-        st.error(f"🚨 오류 발생: {e}")
+# 🎛️ 동네 선택
+st.title("📊 지역별 인구 시각화")
+districts = male_female_df["행정구역"].unique().tolist()
+selected_district = st.selectbox("동네를 선택하세요:", districts)
 
-# 지도 초기화 (대한민국 중심)
-m = folium.Map(location=[36.5, 127.5], zoom_start=4)
+# 🧮 데이터 추출
+row = male_female_df[male_female_df["행정구역"] == selected_district].iloc[0]
+male_cols = [col for col in male_female_df.columns if "남_" in col and "세" in col]
+female_cols = [col for col in male_female_df.columns if "여_" in col and "세" in col]
+age_labels = [col.split("_")[-1] for col in male_cols]
 
-# 저장된 마커들 지도에 추가
-for loc in st.session_state.locations:
-    folium.Marker(
-        location=[loc["lat"], loc["lon"]],
-        popup=f"<b>{loc['city']}</b><br>{loc['note']}",
-        tooltip=loc["city"],
-        icon=folium.Icon(color="blue", icon="info-sign")
-    ).add_to(m)
+male_values = [parse_number(row[col]) for col in male_cols]
+female_values = [parse_number(row[col]) for col in female_cols]
 
-# 지도 표시
-st_folium(m, width=700, height=500)
+# 📊 연령별 인구 막대그래프
+st.subheader(f"📈 {selected_district} 연령별 인구")
+bar_fig = go.Figure()
+bar_fig.add_trace(go.Bar(x=age_labels, y=male_values, name='남성', marker_color='blue'))
+bar_fig.add_trace(go.Bar(x=age_labels, y=female_values, name='여성', marker_color='pink'))
+bar_fig.update_layout(barmode='group', xaxis_title='연령', yaxis_title='인구수')
+st.plotly_chart(bar_fig)
+
+# 🧍‍♂️🧍‍♀️ 성별 인구 피라미드
+st.subheader(f"🔍 {selected_district} 성별 인구 피라미드")
+pyramid_fig = go.Figure()
+pyramid_fig.add_trace(go.Bar(y=age_labels, x=[-x for x in male_values], name='남성', orientation='h', marker_color='blue'))
+pyramid_fig.add_trace(go
