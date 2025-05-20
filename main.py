@@ -13,7 +13,7 @@ if "edit_index" not in st.session_state:
 
 # 현재 위치 기준 지도 중심
 g = geocoder.ip('me')
-current_location = g.latlng if g.latlng else [37.5665, 126.9780]
+current_location = g.latlng if g.latlng else [36.5, 127.8]
 
 st.title("🗺️ 나의 여행지도 메모 앱")
 st.markdown("도시 이름을 입력하고 메모를 저장하면 지도에 마커가 표시됩니다.")
