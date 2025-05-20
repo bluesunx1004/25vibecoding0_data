@@ -5,10 +5,10 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 # 페이지 설정
-st.set_page_config(page_title="주가 추세 및 수익률 분석", layout="wide")
-st.title("📊 주가 추세 시각화 및 수익률 분석")
+st.set_page_config(page_title="주가 분석 앱", layout="wide")
+st.title("📊 글로벌 주요 기업 주가 및 수익률 분석")
 
-# 📌 종목 리스트 (확장 가능)
+# 종목 목록
 stock_list = {
     "삼성전자": "005930.KS",
     "Apple": "AAPL",
@@ -18,74 +18,74 @@ stock_list = {
 }
 
 # 사용자 입력
-selected_stock = st.selectbox("종목 선택", options=list(stock_list.keys()))
-interval = st.radio("보기 간격 선택", options=["일간", "주간", "월간"], horizontal=True)
+selected_stock = st.selectbox("📌 종목 선택", options=list(stock_list.keys()))
+interval = st.radio("간격 선택", options=["일간", "주간", "월간"], horizontal=True)
 
-# 간격별 Resample 코드 설정
-resample_dict = {
+# 간격에 따른 리샘플링 규칙
+resample_rule = {
     "일간": "D",
     "주간": "W",
     "월간": "M"
-}
-resample_rule = resample_dict[interval]
+}[interval]
 
 # 기간 설정
 end = datetime.today()
 start = end - timedelta(days=365)
 
-# 📈 데이터 다운로드
+# 주식 데이터 불러오기
 ticker = stock_list[selected_stock]
 df = yf.download(ticker, start=start, end=end)
 
 if df.empty:
-    st.error("❌ 데이터를 불러올 수 없습니다.")
+    st.error("❌ 데이터를 불러올 수 없습니다. 인터넷 연결이나 티커를 확인해주세요.")
 else:
-    # 리샘플링 (종가 기준)
-    df_resampled = df['Close'].resample(resample_rule).last().dropna().reset_index()
+    # 'Close' 컬럼만 명시적으로 선택해 resample
+    df_resampled = df[['Close']].resample(resample_rule).last().dropna().reset_index()
 
     # 수익률 계산 (%)
     df_resampled['수익률(%)'] = (df_resampled['Close'] / df_resampled['Close'].iloc[0] - 1) * 100
 
-    # 📊 종가 선 그래프
-    st.subheader("📈 종가 추세")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
+    # 📈 종가 그래프
+    st.subheader(f"📈 {selected_stock} 종가 추세 ({interval})")
+    fig_close = go.Figure()
+    fig_close.add_trace(go.Scatter(
         x=df_resampled['Date'],
         y=df_resampled['Close'],
         mode='lines+markers',
         name='종가',
-        line=dict(color='blue')
+        line=dict(color='royalblue')
     ))
-    fig.update_layout(
+    fig_close.update_layout(
         xaxis_title="날짜",
-        yaxis_title="종가 (원 또는 USD)",
-        hovermode="x unified",
+        yaxis_title="종가",
         template="plotly_white",
+        hovermode="x unified",
         height=500
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_close, use_container_width=True)
 
-    # 📈 수익률 그래프
-    st.subheader("📈 누적 수익률 (%)")
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
+    # 📊 수익률 그래프
+    st.subheader(f"📊 {selected_stock} 수익률 추세 ({interval})")
+    fig_return = go.Figure()
+    fig_return.add_trace(go.Scatter(
         x=df_resampled['Date'],
         y=df_resampled['수익률(%)'],
         mode='lines+markers',
         name='수익률',
         line=dict(color='green')
     ))
-    fig2.update_layout(
+    fig_return.update_layout(
         xaxis_title="날짜",
         yaxis_title="수익률 (%)",
-        hovermode="x unified",
         template="plotly_white",
+        hovermode="x unified",
         height=500
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig_return, use_container_width=True)
 
-    # 📋 표 데이터 출력
+    # 📋 데이터 테이블
     st.subheader("📋 데이터 테이블")
     df_table = df_resampled.copy()
     df_table['Date'] = df_table['Date'].dt.strftime('%Y-%m-%d')
-    st.dataframe(df_table.rename(columns={'Date': '날짜', 'Close': '종가', '수익률(%)': '수익률 (%)'}), use_container_width=True)
+    df_table = df_table.rename(columns={'Date': '날짜', 'Close': '종가', '수익률(%)': '수익률 (%)'})
+    st.dataframe(df_table, use_container_width=True)
