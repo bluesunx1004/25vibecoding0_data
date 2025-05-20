@@ -2,47 +2,53 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-# 페이지 설정
-st.set_page_config(page_title="인구 피라미드", layout="centered")
-st.title("👥 서울 종로구 인구 피라미드 (GitHub에서 불러오기)")
+# 파일 업로드
+@st.cache_data
+def load_data():
+    male_female = pd.read_csv("malefemale.csv", encoding='cp949')
+    total = pd.read_csv("total.csv", encoding='cp949')
+    return male_female, total
 
-# GitHub raw CSV 링크 입력
-csv_url = st.text_input("GitHub Raw CSV URL 입력", 
-                        "https://raw.githubusercontent.com/yourusername/yourrepo/main/남녀구분.csv")
+male_female_df, total_df = load_data()
 
-if csv_url:
+# 숫자형으로 변환하는 함수
+def parse_number(val):
     try:
-        # GitHub에서 CSV 불러오기
-        df = pd.read_csv(csv_url, encoding='cp949')
+        return int(str(val).replace(',', ''))
+    except:
+        return 0
 
-        # 종로구 데이터 추출
-        row = df[df['행정구역'].str.contains("종로구 ")].iloc[0]
+# 지역 선택
+districts = male_female_df["행정구역"].unique().tolist()
+selected_district = st.selectbox("동네를 선택하세요:", districts)
 
-        # 연령별 남녀 컬럼
-        male_columns = [col for col in df.columns if "남_" in col and "세" in col]
-        female_columns = [col for col in df.columns if "여_" in col and "세" in col]
-        ages = [col.split("_")[-1].replace("세", "") for col in male_columns]
+# 선택된 지역의 데이터 추출
+row = male_female_df[male_female_df["행정구역"] == selected_district].iloc[0]
 
-        male_pop = [-int(str(row[col]).replace(",", "")) for col in male_columns]
-        female_pop = [int(str(row[col]).replace(",", "")) for col in female_columns]
+# 컬럼 필터링
+male_cols = [col for col in male_female_df.columns if "남_" in col and "세" in col]
+female_cols = [col for col in male_female_df.columns if "여_" in col and "세" in col]
+age_labels = [col.split("_")[-1] for col in male_cols]
 
-        # 그래프 생성
-        fig = go.Figure()
-        fig.add_trace(go.Bar(y=ages, x=male_pop, name='남자', orientation='h', marker_color='blue'))
-        fig.add_trace(go.Bar(y=ages, x=female_pop, name='여자', orientation='h', marker_color='pink'))
+male_values = [parse_number(row[col]) for col in male_cols]
+female_values = [parse_number(row[col]) for col in female_cols]
 
-        fig.update_layout(
-            title="서울 종로구 연령대별 남녀 인구 피라미드 (2025년 4월)",
-            xaxis_title="인구 수",
-            yaxis_title="연령",
-            barmode='relative',
-            height=800,
-            template="plotly_white"
-        )
+# 📊 1. 연령별 인구 막대그래프
+st.subheader(f"{selected_district} 연령별 인구")
+bar_fig = go.Figure()
+bar_fig.add_trace(go.Bar(x=age_labels, y=male_values, name='남성', marker_color='blue'))
+bar_fig.add_trace(go.Bar(x=age_labels, y=female_values, name='여성', marker_color='pink'))
+bar_fig.update_layout(barmode='group', xaxis_title='연령', yaxis_title='인구수')
+st.plotly_chart(bar_fig)
 
-        st.plotly_chart(fig, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"🚨 CSV 파일을 불러오는 중 오류 발생: {e}")
-else:
-    st.info("GitHub Raw CSV 링크를 입력해주세요.")
+# 🧍‍♂️🧍‍♀️ 2. 항아리형 성별 인구그래프
+st.subheader(f"{selected_district} 인구 피라미드")
+pyramid_fig = go.Figure()
+pyramid_fig.add_trace(go.Bar(y=age_labels, x=[-v for v in male_values], name='남성', orientation='h', marker_color='blue'))
+pyramid_fig.add_trace(go.Bar(y=age_labels, x=female_values, name='여성', orientation='h', marker_color='pink'))
+pyramid_fig.update_layout(
+    barmode='relative',
+    xaxis=dict(title='인구수', tickvals=[-500, 0, 500]),
+    yaxis_title='연령'
+)
+st.plotly_chart(pyramid_fig)
