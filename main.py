@@ -1,15 +1,17 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import chardet
 
-@st.cache_data
+def detect_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        return chardet.detect(f.read(10000))['encoding']
+
 def load_data():
-    male_female = pd.read_csv("malefemale.csv", encoding='cp949')  # 남녀 데이터
-    total = pd.read_csv("total.csv", encoding='euc-kr')            # 전체 인구 데이터
+    male_female = pd.read_csv("malefemale.csv", encoding='cp949')
+    total_encoding = detect_encoding("total.csv")
+    total = pd.read_csv("total.csv", encoding=total_encoding)
     return male_female, total
-
-male_female_df, total_df = load_data()
-
 # 🚫 캐시 제거한 상태로 로딩
 male_female_df, total_df = load_data()
 
