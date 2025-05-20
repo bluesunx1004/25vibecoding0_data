@@ -49,15 +49,14 @@ m = folium.Map(location=current_location, zoom_start=7)
 
 # ---------- 마커 표시 ----------
 for loc in st.session_state["locations"]:
-    # 사진이 있는 경우 base64 인코딩해서 HTML 이미지 삽입
-    if loc["photo"]:
+    if "photo" in loc and loc["photo"]:
         encoded = base64.b64encode(loc["photo"]).decode()
         img_html = f'<br><img src="data:image/png;base64,{encoded}" width="150"/>'
     else:
         img_html = ""
-    
+
     popup_content = f"<b>{loc['city']}</b><br>{loc['note']}{img_html}"
-    
+
     folium.Marker(
         location=[loc["lat"], loc["lon"]],
         popup=folium.Popup(popup_content, max_width=300),
@@ -76,7 +75,7 @@ if st.session_state["locations"]:
         cols = st.columns([4, 1, 1, 1])
         with cols[0]:
             st.markdown(f"**{loc['city']}** — {loc['note']}")
-            if loc["photo"]:
+            if "photo" in loc and loc["photo"]:
                 st.image(loc["photo"], width=150)
         if cols[1].button("수정", key=f"edit_{i}"):
             st.session_state["edit_index"] = i
