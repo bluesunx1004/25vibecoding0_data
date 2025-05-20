@@ -1,25 +1,25 @@
+import chardet
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import chardet
 
-# 🔍 인코딩 자동 감지 함수
+# ✔️ 인코딩 자동 감지 함수
 def detect_encoding(file_path):
     with open(file_path, 'rb') as f:
-        raw = f.read(10000)  # 처음 10000바이트 샘플
-    return chardet.detect(raw)['encoding']
+        return chardet.detect(f.read(10000))['encoding']
 
-# 📦 데이터 불러오기 함수 (Streamlit 캐시 포함)
-@st.cache_data
+# ✔️ 캐시 제거 후 인코딩 자동 적용
 def load_data():
-    male_encoding = 'cp949'  # 윈도우 출력 엑셀은 보통 cp949
-    total_encoding = detect_encoding('total.csv')  # 자동 감지
-    male_df = pd.read_csv('malefemale.csv', encoding=male_encoding)
-    total_df = pd.read_csv('total.csv', encoding=total_encoding)
-    return male_df, total_df
+    male_encoding = 'cp949'  # 확정된 인코딩
+    total_encoding = detect_encoding("total.csv")  # 자동 감지
+    st.write(f"Detected total.csv encoding: {total_encoding}")  # 디버깅용 출력
+    male = pd.read_csv("malefemale.csv", encoding=male_encoding)
+    total = pd.read_csv("total.csv", encoding=total_encoding)
+    return male, total
 
-# ✅ 데이터 로딩
+# 🚫 캐시 제거한 상태로 로딩
 male_female_df, total_df = load_data()
+
 
 # 🧹 숫자 변환 유틸
 def parse_number(val):
