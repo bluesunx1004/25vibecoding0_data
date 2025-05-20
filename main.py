@@ -10,8 +10,7 @@ st.title("📌 나의 여행지도 메모 앱")
 if "locations" not in st.session_state:
     st.session_state["locations"] = []
 
-st.markdown("1. 지도를 클릭해 위치를 선택하세요.  
-2. 여행 메모를 작성하고 저장하면 마커가 생깁니다.")
+st.markdown("1. 지도를 클릭해 위치를 선택하세요.\n2. 여행 메모를 작성하고 저장하면 마커가 생깁니다.")
 
 # 기본 지도 설정
 m = folium.Map(location=[37.5665, 126.9780], zoom_start=6)  # 서울 중심
