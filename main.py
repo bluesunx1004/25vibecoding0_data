@@ -1,21 +1,14 @@
-import chardet
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-# ✔️ 인코딩 자동 감지 함수
-def detect_encoding(file_path):
-    with open(file_path, 'rb') as f:
-        return chardet.detect(f.read(10000))['encoding']
-
-# ✔️ 캐시 제거 후 인코딩 자동 적용
+@st.cache_data
 def load_data():
-    male_encoding = 'cp949'  # 확정된 인코딩
-    total_encoding = detect_encoding("total.csv")  # 자동 감지
-    st.write(f"Detected total.csv encoding: {total_encoding}")  # 디버깅용 출력
-    male = pd.read_csv("malefemale.csv", encoding=male_encoding)
-    total = pd.read_csv("total.csv", encoding=total_encoding)
-    return male, total
+    male_female = pd.read_csv("malefemale.csv", encoding='cp949')  # 남녀 데이터
+    total = pd.read_csv("total.csv", encoding='euc-kr')            # 전체 인구 데이터
+    return male_female, total
+
+male_female_df, total_df = load_data()
 
 # 🚫 캐시 제거한 상태로 로딩
 male_female_df, total_df = load_data()
