@@ -2,7 +2,6 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
-import geocoder
 import pandas as pd
 
 # 초기 세션 상태
@@ -11,44 +10,49 @@ if "locations" not in st.session_state:
 if "edit_index" not in st.session_state:
     st.session_state["edit_index"] = None
 
-# 현재 위치 기준 지도 중심
-g = geocoder.ip('me')
-current_location = g.latlng if g.latlng else [36.5, 127.8]
+# 지도 초기 중심을 한국 중심으로 고정
+current_location = [36.5, 127.8]
 
 st.title("🗺️ 나의 여행지도 메모 앱")
 st.markdown("도시 이름을 입력하고 메모를 저장하면 지도에 마커가 표시됩니다.")
 
 # 도시 입력 폼
 with st.form(key="location_form"):
-    city = st.text_input("도시 이름 (예: 서울, 부산, Tokyo, Paris 등):")
-    note = st.text_input("이 도시에서의 여행 메모:")
+    city = st.text_input("도시 이름 (예: 서울, 부산, Tokyo, Paris 등):").strip()
+    note = st.text_input("이 도시에서의 여행 메모:").strip()
     submit = st.form_submit_button("저장")
 
     if submit and city and note:
         geolocator = Nominatim(user_agent="travel_app")
-        location = geolocator.geocode(city)
-        if location:
-            st.session_state["locations"].append({
-                "city": city,
-                "lat": location.latitude,
-                "lon": location.longitude,
-                "note": note
-            })
-            st.success(f"'{city}'에 대한 메모가 저장되었습니다!")
-            st.rerun()
-        else:
-            st.error("도시를 찾을 수 없습니다. 다시 입력해주세요.")
+        try:
+            location = geolocator.geocode(city)
+            if location:
+                st.session_state["locations"].append({
+                    "city": city,
+                    "lat": location.latitude,
+                    "lon": location.longitude,
+                    "note": note
+                })
+                st.success(f"'{city}'에 대한 메모가 저장되었습니다!")
+                st.rerun()
+            else:
+                st.error("도시를 찾을 수 없습니다. 정확한 이름을 입력해주세요.")
+        except Exception as e:
+            st.error(f"위치 검색 중 오류 발생: {e}")
 
-# 지도 생성
-m = folium.Map(location=current_location, zoom_start=5)
+# 지도 생성 (한국 중심 고정)
+m = folium.Map(location=current_location, zoom_start=7)
 
 # 마커 표시
 for i, loc in enumerate(st.session_state["locations"]):
-    folium.Marker(
-        location=[loc["lat"], loc["lon"]],
-        popup=f"{loc['city']}<br>{loc['note']}",
-        icon=folium.Icon(color="blue", icon="info-sign")
-    ).add_to(m)
+    try:
+        folium.Marker(
+            location=[loc["lat"], loc["lon"]],
+            popup=f"{loc['city']}<br>{loc['note']}",
+            icon=folium.Icon(color="blue", icon="info-sign")
+        ).add_to(m)
+    except Exception as e:
+        st.warning(f"마커 표시 오류: {e}")
 
 # 지도 출력
 st_data = st_folium(m, width=700, height=500)
