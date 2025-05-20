@@ -78,4 +78,4 @@ if st.session_state["edit_index"] is not None:
             st.session_state["locations"][i]["note"] = new_note
             st.session_state["edit_index"] = None
             st.success("메모가 수정되었습니다.")
-            st.experimental_rerun()
+            st.rerun()
