@@ -19,10 +19,13 @@ df = yf.download(ticker, start=start, end=end)
 if df.empty:
     st.error("❌ 데이터를 불러올 수 없습니다.")
 else:
-    # 월별 종가만 추출
-    df_monthly = df['Close'].resample('M').last().reset_index()
+    # 인덱스를 'Date' 열로 저장 (reset_index 전에 필요)
+    df['Date'] = df.index
 
-    # Plotly 시각화
+    # 월별 종가 추출
+    df_monthly = df.resample('M').last().reset_index()[['Date', 'Close']]
+
+    # Plotly 그래프 생성
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df_monthly['Date'],
@@ -44,7 +47,7 @@ else:
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # 데이터도 함께 표로 보여주기
+    # 월별 데이터 표 출력
     st.subheader("📋 월별 종가 데이터")
     df_monthly['Date'] = df_monthly['Date'].dt.strftime('%Y-%m')
     st.dataframe(df_monthly.rename(columns={'Date': '월', 'Close': '종가(KRW)'}), use_container_width=True)
