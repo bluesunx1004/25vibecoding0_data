@@ -53,4 +53,11 @@ st.plotly_chart(bar_fig)
 st.subheader(f"🔍 {selected_district} 성별 인구 피라미드")
 pyramid_fig = go.Figure()
 pyramid_fig.add_trace(go.Bar(y=age_labels, x=[-x for x in male_values], name='남성', orientation='h', marker_color='blue'))
-pyramid_fig.add_trace(go
+pyramid_fig.add_trace(go.Bar(y=age_labels, x=female_values, name='여성', orientation='h', marker_color='pink'))
+pyramid_fig.update_layout(
+    barmode='relative',
+    xaxis=dict(title='인구수', tickvals=[-500, 0, 500]),
+    yaxis_title='연령',
+    legend=dict(x=0.8, y=0.1)
+)
+st.plotly_chart(pyramid_fig)
